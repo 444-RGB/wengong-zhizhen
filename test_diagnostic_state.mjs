@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import {validateDiagnostics,filteredEvents,eventIndex} from './static/diagnostic_state.mjs';
+const row=i=>({seq:i,time_s:i*.1,dt_s:i?.1:0,pv_ac_kw:10,load_kw:12,charge_kw:0,discharge_kw:0,grid_import_kw:0,grid_export_kw:0,curtail_kw:0,unserved_kw:2,soc:.5});
+const rows=[row(0),row(1),row(2)],hashes={'inputs.csv':'a','without_battery.csv':'b','with_battery.csv':'c'};
+const packet={meta:{id:'test',status:'completed',artifact_sha256:hashes},result:{numeric_sha256:'n'},protocol:{steps:2,dt_s:.1},series:{with_battery:rows,without_battery:rows}};
+const event={id:'one',group:'with_battery',rule_id:'unserved',title:'供电缺口',metric:'unserved_kw',unit:'kW',start_seq:1,end_seq:2,peak_seq:1,start_s:0,first_sample_s:.1,end_s:.2,peak_s:.1,duration_s:.2,peak_value:2,energy_kwh:4*.1/3600,evidence:{sample:row(1),counterpart:row(1),input:{step:1,load_kw:12,grid_import_kw:0,grid_export_kw:0}}};
+const report={id:'test',schema:'operating-events-v1',numeric_sha256:'n',source_sha256:hashes,protocol:{rules:[{id:'unserved',metric:'unserved_kw',unit:'kW'}]},events:[event],summary:{with_battery:{event_count:1},without_battery:{event_count:0}}};
+assert.equal(validateDiagnostics(packet,report),report);assert.equal(filteredEvents(report,'with_battery','all').length,1);assert.equal(filteredEvents(report,'without_battery','all').length,0);assert.equal(eventIndex(event),1);assert.equal(eventIndex(event,'end'),2);
+const bad=change=>{let r=structuredClone(report);change(r);assert.throws(()=>validateDiagnostics(packet,r));};
+bad(r=>r.id='old');bad(r=>r.source_sha256['inputs.csv']='edited');bad(r=>r.events[0].peak_seq=3);bad(r=>r.events[0].duration_s=.3);bad(r=>r.events[0].peak_value=NaN);bad(r=>r.events[0].evidence.sample.unserved_kw=3);bad(r=>r.events[0].evidence.input.step=2);bad(r=>r.events.push(structuredClone(r.events[0])));bad(r=>r.summary.with_battery.event_count=2);
+console.log('PASS: diagnostic source/identity gate, event ranges, evidence/curve matching, invalid values, duplicate IDs, filters and jump indices');

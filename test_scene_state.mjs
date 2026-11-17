@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import {advanceIndex,sampleIndex,inputFor,ledger,validateScene} from './static/scene_state.mjs';
+assert.equal(advanceIndex(0,1,1,.1,301),10);
+assert.equal(advanceIndex(20,1.25,2,.1,301),45);
+assert.equal(advanceIndex(290,6,5,.1,301),300);
+assert.equal(sampleIndex(301,-1),0);assert.equal(sampleIndex(301,299.6),300);
+const row={seq:0,time_s:0,pv_dc_available_kw:6,pv_ac_kw:0,load_kw:0,charge_kw:0,discharge_kw:0,grid_import_kw:0,grid_export_kw:0,curtail_kw:0,unserved_kw:0,soc:.5,balance_residual_kw:0,battery_residual_kwh:0};const f={seq:0,time_s:0,cloud_x:-55};for(let z=0;z<6;z++)for(const k of ['irradiance','temperature_C','dc_kw','vmpp_V'])f[k+'_'+z]=1;
+const p={meta:{id:'one',status:'completed'},protocol:{steps:0,dt_s:.1},result:{},series:{without_battery:[row],with_battery:[row]}};
+const data={id:'one',frames:[f],inputs:[]};assert.equal(validateScene(p,data),data);
+assert.throws(()=>validateScene(p,{...data,id:'old'}));assert.throws(()=>validateScene(p,{...data,frames:[{...f,time_s:NaN}]}));assert.throws(()=>validateScene(p,{...data,frames:[]}));
+assert.throws(()=>validateScene({...p,series:{...p.series,with_battery:[{...row,time_s:1}]}},data));
+assert.throws(()=>validateScene(p,{...data,frames:[{...f,dc_kw_0:2}]}));
+assert.throws(()=>validateScene(p,{...data,frames:[{...f,temperature_C_0:NaN}]}));
+let inputs=Array.from({length:300},(_,i)=>({phase:i<100?0:i<200?1:2}));assert.equal(inputFor({inputs},0).phase,0);assert.equal(inputFor({inputs},100).phase,0);assert.equal(inputFor({inputs},101).phase,1);assert.equal(inputFor({inputs},201).phase,2);
+const l=ledger({pv_ac_kw:12,load_kw:20,unserved_kw:3,charge_kw:0,discharge_kw:5,grid_import_kw:0,grid_export_kw:0,curtail_kw:2});assert.equal(l.pv+l.discharge+l.import-l.load-l.charge-l.export,0);
+console.log('PASS: replay timing, bounded indexing, sample/event alignment, power ledger, mismatched IDs/clocks and invalid zone data rejected');

@@ -1,0 +1,6 @@
+Bundled renderer: Three.js (MIT). See THREE_LICENSE.txt.
+OrbitControls is part of Three.js.
+
+V19: @noble/hashes 1.8.0, MIT License. Copyright Paul Miller. Full license: static/integration/NOBLE_HASHES_LICENSE.txt. Used for browser SHA256 asset verification.
+
+V24 portable Windows distributions: CPython 3.13.17 embeddable x64 from python.org, unchanged ZIP with its license; PyPI wheel distributions listed in portable/THIRD_PARTY_PACKAGES.json, with original license metadata retained inside each wheel. SHA256.json and requirements.lock cover bundled bytes. Ollama installer and DeepSeek model weights are not bundled.
